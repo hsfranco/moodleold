@@ -173,8 +173,14 @@ abstract class restore_activity_task extends restore_task {
 
         // Logs (conditionally)
         if ($this->get_setting_value('logs')) {
+            // Legacy logs.
             $this->add_step(new restore_activity_logs_structure_step('activity_logs', 'logs.xml'));
+            // New log stores.
+            $this->add_step(new restore_activity_logstores_structure_step('activity_logstores', 'logstores.xml'));
         }
+
+        // Activity competencies.
+        $this->add_step(new restore_activity_competencies_structure_step('activity_competencies', 'competencies.xml'));
 
         // At the end, mark it as built
         $this->built = true;
@@ -281,7 +287,7 @@ abstract class restore_activity_task extends restore_task {
         // - section_included setting (if exists)
         $settingname = $settingprefix . 'included';
         $activity_included = new restore_activity_generic_setting($settingname, base_setting::IS_BOOLEAN, true);
-        $activity_included->get_ui()->set_icon(new pix_icon('icon', get_string('pluginname', $this->modulename),
+        $activity_included->get_ui()->set_icon(new image_icon('icon', get_string('pluginname', $this->modulename),
             $this->modulename, array('class' => 'iconlarge icon-post')));
         $this->add_setting($activity_included);
         // Look for "activities" root setting

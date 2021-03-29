@@ -315,6 +315,21 @@ function lesson_save_question_options($question, $lesson, $contextid) {
                 return $result;
             }
             break;
+
+        case LESSON_PAGE_ESSAY:
+            $answer = new stdClass();
+            $answer->lessonid = $question->lessonid;
+            $answer->pageid = $question->id;
+            $answer->timecreated = $timenow;
+            $answer->answer = null;
+            $answer->answerformat = FORMAT_MOODLE;
+            $answer->grade = 0;
+            $answer->score = 1;
+            $answer->jumpto = LESSON_NEXTPAGE;
+            $answer->response = null;
+            $answer->responseformat = FORMAT_MOODLE;
+            $answer->id = $DB->insert_record("lesson_answers", $answer);
+        break;
         default:
             $result->error = "Unsupported question type ($question->qtype)!";
             return $result;
@@ -333,7 +348,8 @@ class qformat_default {
                                'multichoice' => LESSON_PAGE_MULTICHOICE,
                                'truefalse'   => LESSON_PAGE_TRUEFALSE,
                                'shortanswer' => LESSON_PAGE_SHORTANSWER,
-                               'match'       => LESSON_PAGE_MATCHING
+                               'match'       => LESSON_PAGE_MATCHING,
+                               'essay'       => LESSON_PAGE_ESSAY
                               );
 
     // Importing functions
@@ -426,6 +442,7 @@ class qformat_default {
                 case 'truefalse' :
                 case 'multichoice' :
                 case 'match' :
+                case 'essay' :
                     $count++;
 
                     //Show nice formated question in one line.
@@ -709,8 +726,8 @@ class qformat_default {
         // @@PLUGINFILE@@ with a real URL, but it doesn't matter what.
         // We use http://example.com/.
         $text = str_replace('@@PLUGINFILE@@/', 'http://example.com/', $question->questiontext);
-        return html_to_text(format_text($text,
-                $question->questiontextformat, $formatoptions), 0, false);
+        return s(html_to_text(format_text($text,
+                $question->questiontextformat, $formatoptions), 0, false));
     }
 
     /**

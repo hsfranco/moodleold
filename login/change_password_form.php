@@ -63,6 +63,11 @@ class login_change_password_form extends moodleform {
         $mform->addRule('newpassword2', get_string('required'), 'required', null, 'client');
         $mform->setType('newpassword2', PARAM_RAW);
 
+        if (empty($CFG->passwordchangetokendeletion) and !empty(webservice::get_active_tokens($USER->id))) {
+            $mform->addElement('advcheckbox', 'signoutofotherservices', get_string('signoutofotherservices'));
+            $mform->addHelpButton('signoutofotherservices', 'signoutofotherservices');
+            $mform->setDefault('signoutofotherservices', 1);
+        }
 
         // hidden optional params
         $mform->addElement('hidden', 'id', 0);
@@ -80,9 +85,10 @@ class login_change_password_form extends moodleform {
     function validation($data, $files) {
         global $USER;
         $errors = parent::validation($data, $files);
+        $reason = null;
 
         // ignore submitted username
-        if (!$user = authenticate_user_login($USER->username, $data['password'], true)) {
+        if (!$user = authenticate_user_login($USER->username, $data['password'], true, $reason, false)) {
             $errors['password'] = get_string('invalidlogin');
             return $errors;
         }
