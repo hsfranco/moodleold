@@ -74,6 +74,11 @@ class process_data_request_task extends adhoc_task {
             return;
         }
 
+        if (!\tool_dataprivacy\data_registry::defaults_set()) {
+            // Warn if no site purpose is defined.
+            mtrace('Warning: No purpose is defined at the system level. Deletion will delete all.');
+        }
+
         // Get the user details now. We might not be able to retrieve it later if it's a deletion processing.
         $foruser = core_user::get_user($request->userid);
 
@@ -84,9 +89,6 @@ class process_data_request_task extends adhoc_task {
         $deleteuser = false;
 
         if ($request->type == api::DATAREQUEST_TYPE_EXPORT) {
-            // Run as the user performing the export.
-            cron_setup_user($foruser);
-
             // Get the user context.
             $usercontext = \context_user::instance($foruser->id, IGNORE_MISSING);
             if (!$usercontext) {
@@ -188,7 +190,6 @@ class process_data_request_task extends adhoc_task {
                 $emailonly = true;
                 break;
             default:
-                cron_setup_user();
                 throw new moodle_exception('errorinvalidrequesttype', 'tool_dataprivacy');
         }
 
@@ -261,8 +262,6 @@ class process_data_request_task extends adhoc_task {
                 mtrace('Message sent to requester: ' . $messagetextdata['username']);
             }
         }
-
-        cron_setup_user();
 
         if ($deleteuser) {
             // Delete the user.

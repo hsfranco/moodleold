@@ -233,6 +233,27 @@ class core_externallib_testcase extends advanced_testcase {
     }
 
     /**
+     * Test for clean_returnvalue() for testing that returns the PHP type.
+     */
+    public function test_clean_returnvalue_return_php_type() {
+
+        $returndesc = new external_single_structure(
+            array(
+                'value' => new external_value(PARAM_RAW, 'Some text', VALUE_OPTIONAL, null, NULL_NOT_ALLOWED)
+            )
+        );
+
+        // Check return type on exception because the external values does not allow NULL values.
+        $testdata = array('value' => null);
+        try {
+            $cleanedvalue = external_api::clean_returnvalue($returndesc, $testdata);
+        } catch (moodle_exception $e) {
+            $this->assertInstanceOf('invalid_response_exception', $e);
+            $this->assertContains('of PHP type "NULL"', $e->debuginfo);
+        }
+    }
+
+    /**
      * Test for clean_returnvalue().
      */
     public function test_clean_returnvalue() {
@@ -570,6 +591,32 @@ class core_externallib_testcase extends advanced_testcase {
             $this->assertEquals(VALUE_OPTIONAL, $key->required);
         }
 
+    }
+
+    /**
+     * Test default time for user created tokens.
+     */
+    public function test_user_created_tokens_duration() {
+        global $CFG, $DB;
+        $this->resetAfterTest(true);
+
+        $CFG->enablewebservices = 1;
+        $CFG->enablemobilewebservice = 1;
+        $user1 = $this->getDataGenerator()->create_user();
+        $user2 = $this->getDataGenerator()->create_user();
+        $service = $DB->get_record('external_services', array('shortname' => MOODLE_OFFICIAL_MOBILE_SERVICE, 'enabled' => 1));
+
+        $this->setUser($user1);
+        $timenow = time();
+        $token = external_generate_token_for_current_user($service);
+        $this->assertGreaterThanOrEqual($timenow + $CFG->tokenduration, $token->validuntil);
+
+        // Change token default time.
+        $this->setUser($user2);
+        set_config('tokenduration', DAYSECS);
+        $token = external_generate_token_for_current_user($service);
+        $timenow = time();
+        $this->assertLessThanOrEqual($timenow + DAYSECS, $token->validuntil);
     }
 }
 

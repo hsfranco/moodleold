@@ -208,10 +208,10 @@ class external_api {
             // Do not allow access to write or delete webservices as a public user.
             if ($externalfunctioninfo->loginrequired) {
                 if (defined('NO_MOODLE_COOKIES') && NO_MOODLE_COOKIES && !PHPUNIT_TEST) {
-                    throw new moodle_exception('servicenotavailable', 'webservice');
+                    throw new moodle_exception('servicerequireslogin', 'webservice');
                 }
                 if (!isloggedin()) {
-                    throw new moodle_exception('servicenotavailable', 'webservice');
+                    throw new moodle_exception('servicerequireslogin', 'webservice');
                 } else {
                     require_sesskey();
                 }
@@ -380,8 +380,9 @@ class external_api {
                     return (bool)$response;
                 }
             }
+            $responsetype = gettype($response);
             $debuginfo = 'Invalid external api response: the value is "' . $response .
-                    '", the server was expecting "' . $description->type . '" type';
+                    '" of PHP type "' . $responsetype . '", the server was expecting "' . $description->type . '" type';
             try {
                 return validate_param($response, $description->type, $description->allownull, $debuginfo);
             } catch (invalid_parameter_exception $e) {
@@ -508,6 +509,37 @@ class external_api {
             throw new invalid_parameter_exception('Missing parameters, please provide either context level with instance id or contextid');
         }
     }
+
+    /**
+     * Returns a prepared structure to use a context parameters.
+     * @return external_single_structure
+     */
+    protected static function get_context_parameters() {
+        $id = new external_value(
+            PARAM_INT,
+            'Context ID. Either use this value, or level and instanceid.',
+            VALUE_DEFAULT,
+            0
+        );
+        $level = new external_value(
+            PARAM_ALPHA,
+            'Context level. To be used with instanceid.',
+            VALUE_DEFAULT,
+            ''
+        );
+        $instanceid = new external_value(
+            PARAM_INT,
+            'Context instance ID. To be used with level',
+            VALUE_DEFAULT,
+            0
+        );
+        return new external_single_structure(array(
+            'contextid' => $id,
+            'contextlevel' => $level,
+            'instanceid' => $instanceid,
+        ));
+    }
+
 }
 
 /**
@@ -968,7 +1000,7 @@ function external_format_text($text, $textformat, $contextid, $component = null,
  * @throws moodle_exception
  */
 function external_generate_token_for_current_user($service) {
-    global $DB, $USER;
+    global $DB, $USER, $CFG;
 
     core_user::require_active_user($USER, true, true);
 
@@ -1052,8 +1084,8 @@ function external_generate_token_for_current_user($service) {
             $token->creatorid = $USER->id;
             $token->timecreated = time();
             $token->externalserviceid = $service->id;
-            // MDL-43119 Token valid for 3 months (12 weeks).
-            $token->validuntil = $token->timecreated + 12 * WEEKSECS;
+            // By default tokens are valid for 12 weeks.
+            $token->validuntil = $token->timecreated + $CFG->tokenduration;
             $token->iprestriction = null;
             $token->sid = null;
             $token->lastaccess = null;

@@ -493,7 +493,8 @@ class comment {
                 $textareaattrs = array(
                     'name' => 'content',
                     'rows' => 2,
-                    'id' => 'dlg-content-'.$this->cid
+                    'id' => 'dlg-content-'.$this->cid,
+                    'aria-label' => get_string('addcomment')
                 );
                 if (!$this->fullwidth) {
                     $textareaattrs['cols'] = '20';
@@ -569,7 +570,7 @@ class comment {
         $params['itemid'] = $this->itemid;
 
         $comments = array();
-        $formatoptions = array('overflowdiv' => true);
+        $formatoptions = array('overflowdiv' => true, 'blanktarget' => true);
         $rs = $DB->get_recordset_sql($sql, $params, $start, $perpage);
         foreach ($rs as $u) {
             $c = new stdClass();
@@ -716,7 +717,8 @@ class comment {
             $newcmt->fullname = fullname($USER);
             $url = new moodle_url('/user/view.php', array('id' => $USER->id, 'course' => $this->courseid));
             $newcmt->profileurl = $url->out();
-            $newcmt->content = format_text($newcmt->content, $newcmt->format, array('overflowdiv'=>true));
+            $formatoptions = array('overflowdiv' => true, 'blanktarget' => true);
+            $newcmt->content = format_text($newcmt->content, $newcmt->format, $formatoptions);
             $newcmt->avatar = $OUTPUT->user_picture($USER, array('size'=>16));
 
             $commentlist = array($newcmt);

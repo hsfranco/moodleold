@@ -628,6 +628,7 @@ function groups_delete_groupings_groups($courseid, $showfeedback=false) {
     foreach ($results as $result) {
         groups_unassign_grouping($result->groupingid, $result->groupid, false);
     }
+    $results->close();
 
     // Invalidate the grouping cache for the course
     cache_helper::invalidate_by_definition('core', 'groupdata', array(), array($courseid));
@@ -658,6 +659,7 @@ function groups_delete_groups($courseid, $showfeedback=false) {
     foreach ($groups as $group) {
         groups_delete_group($group);
     }
+    $groups->close();
 
     // Invalidate the grouping cache for the course
     cache_helper::invalidate_by_definition('core', 'groupdata', array(), array($courseid));
@@ -690,6 +692,7 @@ function groups_delete_groupings($courseid, $showfeedback=false) {
     foreach ($groupings as $grouping) {
         groups_delete_grouping($grouping);
     }
+    $groupings->close();
 
     // Invalidate the grouping cache for the course.
     cache_helper::invalidate_by_definition('core', 'groupdata', array(), array($courseid));
@@ -1115,4 +1118,18 @@ function groups_sync_with_enrolment($enrolname, $courseid = 0, $gidfield = 'cust
     $rs->close();
 
     return $affectedusers;
+}
+
+/**
+ * Callback for inplace editable API.
+ *
+ * @param string $itemtype - Only user_groups is supported.
+ * @param string $itemid - Userid and groupid separated by a :
+ * @param string $newvalue - json encoded list of groupids.
+ * @return \core\output\inplace_editable
+ */
+function core_group_inplace_editable($itemtype, $itemid, $newvalue) {
+    if ($itemtype === 'user_groups') {
+        return \core_group\output\user_groups_editable::update($itemid, $newvalue);
+    }
 }

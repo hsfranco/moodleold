@@ -154,6 +154,150 @@ class mod_quiz_locallib_testcase extends advanced_testcase {
     }
 
     /**
+     * Return false when there are not overrides for this quiz instance.
+     */
+    public function test_quiz_is_overriden_calendar_event_no_override() {
+        global $CFG, $DB;
+
+        $this->resetAfterTest();
+        $this->setAdminUser();
+
+        $generator = $this->getDataGenerator();
+        $user = $generator->create_user();
+        $course = $generator->create_course();
+        $quizgenerator = $generator->get_plugin_generator('mod_quiz');
+        $quiz = $quizgenerator->create_instance(['course' => $course->id]);
+
+        $event = new \calendar_event((object)[
+            'modulename' => 'quiz',
+            'instance' => $quiz->id,
+            'userid' => $user->id
+        ]);
+
+        $this->assertFalse(quiz_is_overriden_calendar_event($event));
+    }
+
+    /**
+     * Return false if the given event isn't an quiz module event.
+     */
+    public function test_quiz_is_overriden_calendar_event_no_module_event() {
+        global $CFG, $DB;
+
+        $this->resetAfterTest();
+        $this->setAdminUser();
+
+        $generator = $this->getDataGenerator();
+        $user = $generator->create_user();
+        $course = $generator->create_course();
+        $quizgenerator = $generator->get_plugin_generator('mod_quiz');
+        $quiz = $quizgenerator->create_instance(['course' => $course->id]);
+
+        $event = new \calendar_event((object)[
+            'userid' => $user->id
+        ]);
+
+        $this->assertFalse(quiz_is_overriden_calendar_event($event));
+    }
+
+    /**
+     * Return false if there is overrides for this use but they belong to another quiz
+     * instance.
+     */
+    public function test_quiz_is_overriden_calendar_event_different_quiz_instance() {
+        global $CFG, $DB;
+
+        $this->resetAfterTest();
+        $this->setAdminUser();
+
+        $generator = $this->getDataGenerator();
+        $user = $generator->create_user();
+        $course = $generator->create_course();
+        $quizgenerator = $generator->get_plugin_generator('mod_quiz');
+        $quiz = $quizgenerator->create_instance(['course' => $course->id]);
+        $quiz2 = $quizgenerator->create_instance(['course' => $course->id]);
+
+        $event = new \calendar_event((object) [
+            'modulename' => 'quiz',
+            'instance' => $quiz->id,
+            'userid' => $user->id
+        ]);
+
+        $record = (object) [
+            'quiz' => $quiz2->id,
+            'userid' => $user->id
+        ];
+
+        $DB->insert_record('quiz_overrides', $record);
+
+        $this->assertFalse(quiz_is_overriden_calendar_event($event));
+    }
+
+    /**
+     * Return true if there is a user override for this event and quiz instance.
+     */
+    public function test_quiz_is_overriden_calendar_event_user_override() {
+        global $CFG, $DB;
+
+        $this->resetAfterTest();
+        $this->setAdminUser();
+
+        $generator = $this->getDataGenerator();
+        $user = $generator->create_user();
+        $course = $generator->create_course();
+        $quizgenerator = $generator->get_plugin_generator('mod_quiz');
+        $quiz = $quizgenerator->create_instance(['course' => $course->id]);
+
+        $event = new \calendar_event((object) [
+            'modulename' => 'quiz',
+            'instance' => $quiz->id,
+            'userid' => $user->id
+        ]);
+
+        $record = (object) [
+            'quiz' => $quiz->id,
+            'userid' => $user->id
+        ];
+
+        $DB->insert_record('quiz_overrides', $record);
+
+        $this->assertTrue(quiz_is_overriden_calendar_event($event));
+    }
+
+    /**
+     * Return true if there is a group override for the event and quiz instance.
+     */
+    public function test_quiz_is_overriden_calendar_event_group_override() {
+        global $CFG, $DB;
+
+        $this->resetAfterTest();
+        $this->setAdminUser();
+
+        $generator = $this->getDataGenerator();
+        $user = $generator->create_user();
+        $course = $generator->create_course();
+        $quizgenerator = $generator->get_plugin_generator('mod_quiz');
+        $quiz = $quizgenerator->create_instance(['course' => $course->id]);
+        $group = $this->getDataGenerator()->create_group(array('courseid' => $quiz->course));
+        $groupid = $group->id;
+        $userid = $user->id;
+
+        $event = new \calendar_event((object) [
+            'modulename' => 'quiz',
+            'instance' => $quiz->id,
+            'groupid' => $groupid
+        ]);
+
+        $record = (object) [
+            'quiz' => $quiz->id,
+            'groupid' => $groupid
+        ];
+
+        $DB->insert_record('quiz_overrides', $record);
+
+        $this->assertTrue(quiz_is_overriden_calendar_event($event));
+    }
+
+    /**
      * Test test_quiz_get_user_timeclose().
      */
     public function test_quiz_get_user_timeclose() {
@@ -167,6 +311,7 @@ class mod_quiz_locallib_testcase extends advanced_testcase {
         // Create generator, course and quizzes.
         $student1 = $this->getDataGenerator()->create_user();
         $student2 = $this->getDataGenerator()->create_user();
+        $student3 = $this->getDataGenerator()->create_user();
         $teacher = $this->getDataGenerator()->create_user();
         $course = $this->getDataGenerator()->create_course();
         $quizgenerator = $this->getDataGenerator()->get_plugin_generator('mod_quiz');
@@ -179,6 +324,7 @@ class mod_quiz_locallib_testcase extends advanced_testcase {
 
         $student1id = $student1->id;
         $student2id = $student2->id;
+        $student3id = $student3->id;
         $teacherid = $teacher->id;
 
         // Users enrolments.
@@ -186,6 +332,7 @@ class mod_quiz_locallib_testcase extends advanced_testcase {
         $teacherrole = $DB->get_record('role', array('shortname' => 'editingteacher'));
         $this->getDataGenerator()->enrol_user($student1id, $course->id, $studentrole->id, 'manual');
         $this->getDataGenerator()->enrol_user($student2id, $course->id, $studentrole->id, 'manual');
+        $this->getDataGenerator()->enrol_user($student3id, $course->id, $studentrole->id, 'manual');
         $this->getDataGenerator()->enrol_user($teacherid, $course->id, $teacherrole->id, 'manual');
 
         // Create groups.
@@ -213,14 +360,31 @@ class mod_quiz_locallib_testcase extends advanced_testcase {
         $object = new stdClass();
         $object->id = $quiz1->id;
         $object->usertimeclose = $basetimestamp + 10800; // The overriden timeclose for quiz 1.
-        $object->usertimelimit = 0;
 
         $comparearray[$quiz1->id] = $object;
 
         $object = new stdClass();
         $object->id = $quiz2->id;
         $object->usertimeclose = $basetimestamp + 7200; // The unchanged timeclose for quiz 2.
-        $object->usertimelimit = 0;
+
+        $comparearray[$quiz2->id] = $object;
+
+        $this->assertEquals($comparearray, quiz_get_user_timeclose($course->id));
+
+        // Let's test quiz 1 closes in two hours (the original value) for user student 3 since member of no group.
+        $this->setUser($student3id);
+        $params = new stdClass();
+
+        $comparearray = array();
+        $object = new stdClass();
+        $object->id = $quiz1->id;
+        $object->usertimeclose = $basetimestamp + 7200; // The original timeclose for quiz 1.
+
+        $comparearray[$quiz1->id] = $object;
+
+        $object = new stdClass();
+        $object->id = $quiz2->id;
+        $object->usertimeclose = $basetimestamp + 7200; // The original timeclose for quiz 2.
 
         $comparearray[$quiz2->id] = $object;
 
@@ -242,14 +406,12 @@ class mod_quiz_locallib_testcase extends advanced_testcase {
         $object = new stdClass();
         $object->id = $quiz1->id;
         $object->usertimeclose = $basetimestamp + 14400; // The overriden timeclose for quiz 1.
-        $object->usertimelimit = 0;
 
         $comparearray[$quiz1->id] = $object;
 
         $object = new stdClass();
         $object->id = $quiz2->id;
         $object->usertimeclose = $basetimestamp + 7200; // The unchanged timeclose for quiz 2.
-        $object->usertimelimit = 0;
 
         $comparearray[$quiz2->id] = $object;
 
@@ -263,14 +425,12 @@ class mod_quiz_locallib_testcase extends advanced_testcase {
         $object = new stdClass();
         $object->id = $quiz1->id;
         $object->usertimeclose = $basetimestamp + 7200; // The unchanged timeclose for quiz 1.
-        $object->usertimelimit = 0;
 
         $comparearray[$quiz1->id] = $object;
 
         $object = new stdClass();
         $object->id = $quiz2->id;
         $object->usertimeclose = $basetimestamp + 7200; // The unchanged timeclose for quiz 2.
-        $object->usertimelimit = 0;
 
         $comparearray[$quiz2->id] = $object;
 

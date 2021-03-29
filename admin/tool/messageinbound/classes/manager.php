@@ -594,10 +594,10 @@ class manager {
                 'usestream' => true,
             ));
 
-            if ($part === $plainpartid) {
+            if ($part == $plainpartid) {
                 $contentplain = $this->process_message_part_body($messagedata, $partdata, $part);
 
-            } else if ($part === $htmlpartid) {
+            } else if ($part == $htmlpartid) {
                 $contenthtml = $this->process_message_part_body($messagedata, $partdata, $part);
 
             } else if ($filename = $partdata->getName($part)) {
@@ -672,7 +672,7 @@ class manager {
         $attachment->charset        = $partdata->getCharset();
         $attachment->description    = $partdata->getDescription();
         $attachment->contentid      = $partdata->getContentId();
-        $attachment->filesize       = $messagedata->getBodyPartSize($part);
+        $attachment->filesize       = $partdata->getBytes();
 
         if (!empty($CFG->antiviruses)) {
             mtrace("--> Attempting virus scan of '{$attachment->filename}'");

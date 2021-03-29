@@ -70,6 +70,18 @@ $CFG->dboptions = array(
                                 // can be removed for MySQL (by default it will
                                 // use 'utf8mb4_unicode_ci'. This option should
                                 // be removed for all other databases.
+    // 'fetchbuffersize' => 100000, // On PostgreSQL, this option sets a limit
+                                // on the number of rows that are fetched into
+                                // memory when doing a large recordset query
+                                // (e.g. search indexing).
+                                // By default, this feature is disabled in
+                                // Moodle 3.4, using a value of zero. In Moodle
+                                // 3.5 and up the feature is enabled by default
+                                // with a buffer size of 100000.
+                                // Uncomment and set a positive value to enable it,
+                                // noting that you need to keep it to zero
+                                // if you are using pg_bouncer in 'transaction'
+                                // mode (it is fine in 'session' mode).
 );
 
 
@@ -467,6 +479,13 @@ $CFG->admin = 'admin';
 //
 //      $CFG->disableupdateautodeploy = true;
 //
+// Use the following flag to disable the warning on the system notifications page
+// about present development libraries. This flag will not disable the warning within
+// the security overview report. Use this flag only if you really have prohibited web
+// access to the development libraries in your webserver configuration.
+//
+//      $CFG->disabledevlibdirscheck = true;
+//
 // Use the following flag to disable modifications to scheduled tasks
 // whilst still showing the state of tasks.
 //
@@ -552,6 +571,12 @@ $CFG->admin = 'admin';
 // password.
 //
 //      $CFG->upgradekey = 'put_some_password-like_value_here';
+//
+// Font used in exported PDF files. When generating a PDF, Moodle embeds a subset of
+// the font in the PDF file so it will be readable on the widest range of devices.
+// The default font is 'freesans' which is part of the GNU FreeFont collection.
+//
+//      $CFG->pdfexportfont = 'freesans';
 //
 // Disable login token validation for login pages. Login token validation is enabled
 // by default unless $CFG->alternateloginurl is set.
